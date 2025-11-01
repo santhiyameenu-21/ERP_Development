@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanical Core ERP - Diagnostic Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        .status-box {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #28a745; }
+        .error { background-color: #f8d7da; border-color: #dc3545; }
+        .warning { background-color: #fff3cd; border-color: #ffc107; }
+        .info { background-color: #d1ecf1; border-color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Mechanical Core ERP - Diagnostic Page</h1>
+        <p class="text-muted">This page will help identify why items.html is showing blank</p>
+        <hr>
+
+        <div id="test-results"></div>
+
+        <div class="mt-4">
+            <h3>📋 Checklist:</h3>
+            <ol>
+                <li>Check if all files exist in the same directory</li>
+                <li>Check browser console (F12) for errors</li>
+                <li>Verify backend is running on port 5000</li>
+                <li>Check CORS is enabled in backend</li>
+            </ol>
+        </div>
+
+        <div class="mt-4">
+            <h3>📁 Required Files:</h3>
+            <ul>
+                <li>app.js</li>
+                <li>items.service.js</li>
+                <li>items.controller.js</li>
+                <li>items.html</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="app.js"></script>
+    <script src="items.service.js"></script>
+    <script src="items.controller.js"></script>
+
+    <script>
+        const results = document.getElementById('test-results');
+        let testsPassed = 0;
+        let testsFailed = 0;
+
+        function addResult(title, status, message) {
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : status === 'warning' ? 'warning' : 'info';
+            const icon = status === 'success' ? '✅' : status === 'error' ? '❌' : status === 'warning' ? '⚠️' : 'ℹ️';
+            
+            if (status === 'success') testsPassed++;
+            if (status === 'error') testsFailed++;
+
+            const div = document.createElement('div');
+            div.className = `status-box ${statusClass}`;
+            div.innerHTML = `<strong>${icon} ${title}</strong><br>${message}`;
+            results.appendChild(div);
+        }
+
+        // Test 1: Check if AngularJS loaded
+        if (typeof angular !== 'undefined') {
+            addResult('AngularJS Library', 'success', 'AngularJS v' + angular.version.full + ' loaded successfully');
+        } else {
+            addResult('AngularJS Library', 'error', 'AngularJS failed to load from CDN. Check internet connection.');
+        }
+
+        // Test 2: Check if app module exists
+        try {
+            const app = angular.module('mechanicalCoreERP');
+            addResult('App Module', 'success', 'mechanicalCoreERP module found');
+        } catch (e) {
+            addResult('App Module', 'error', 'app.js not loaded or module not defined. Error: ' + e.message);
+        }
+
+        // Test 3: Check if service exists
+        try {
+            const app = angular.module('mechanicalCoreERP');
+            const injector = angular.injector(['ng', 'mechanicalCoreERP']);
+            const service = injector.get('ItemsService');
+            addResult('Items Service', 'success', 'ItemsService factory found');
+        } catch (e) {
+            addResult('Items Service', 'error', 'items.service.js not loaded or service not defined. Error: ' + e.message);
+        }
+
+        // Test 4: Check if controller exists
+        try {
+            const app = angular.module('mechanicalCoreERP');
+            const injector = angular.injector(['ng', 'mechanicalCoreERP']);
+            addResult('Items Controller', 'success', 'ItemsController found');
+        } catch (e) {
+            addResult('Items Controller', 'warning', 'Could not verify controller: ' + e.message);
+        }
+
+        // Test 5: Test API connection
+        fetch('http://localhost:5000/api/health', { timeout: 3000 })
+            .then(response => response.json())
+            .then(data => {
+                addResult('Backend API', 'success', 'Backend is online at http://localhost:5000. Response: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                addResult('Backend API', 'error', 'Cannot connect to backend at http://localhost:5000. Make sure backend is running. Error: ' + error.message);
+            });
+
+        // Test 6: Check Bootstrap
+        if (typeof bootstrap !== 'undefined') {
+            addResult('Bootstrap', 'success', 'Bootstrap loaded successfully');
+        } else {
+            addResult('Bootstrap', 'warning', 'Bootstrap may not be loaded properly');
+        }
+
+        // Summary
+        setTimeout(() => {
+            const summary = document.createElement('div');
+            summary.className = 'status-box info mt-4';
+            summary.innerHTML = `
+                <h4>📊 Test Summary</h4>
+                <p><strong>Passed:</strong> ${testsPassed} | <strong>Failed:</strong> ${testsFailed}</p>
+                ${testsFailed > 0 ? '<p class="text-danger"><strong>Fix the errors above before proceeding!</strong></p>' : '<p class="text-success"><strong>All tests passed! Check items.html again.</strong></p>'}
+            `;
+            results.appendChild(summary);
+        }, 1000);
+
+        // Log everything to console
+        console.log('=== DIAGNOSTIC TESTS ===');
+        console.log('Angular:', typeof angular !== 'undefined' ? 'Loaded ✅' : 'Not Loaded ❌');
+        console.log('Window location:', window.location.href);
+        console.log('Check console for any other errors below:');
+    </script>
+</body>
+</html>

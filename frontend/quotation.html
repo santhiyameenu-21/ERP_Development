@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="mechanicalCoreERP">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanical Core ERP - Quotation Management</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        [ng\:cloak], [ng-cloak], .ng-cloak {
+            display: none !important;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 16.666667%;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd;
+            padding: 12px 20px;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            margin-left: 16.666667%;
+        }
+        .item-row {
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 0;
+        }
+        .preview-section {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .company-header {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .customer-search-container {
+            position: relative;
+        }
+        .suggestion-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .customer-info-card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        @media print {
+            .sidebar, .btn, .no-print {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+         /* Add this to your existing CSS */
+    .form-control {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+    
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+    
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    </style>
+</head>
+<body ng-controller="QuotationController as quoteCtrl" ng-cloak>
+    <!-- API Status Indicator -->
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <span class="badge badge-lg px-3 py-2" ng-class="quoteCtrl.apiOnline ? 'bg-success' : 'bg-danger'">
+            <i class="fas" ng-class="quoteCtrl.apiOnline ? 'fa-check-circle' : 'fa-times-circle'"></i>
+            <span ng-if="quoteCtrl.apiOnline"> API Online</span>
+            <span ng-if="!quoteCtrl.apiOnline"> API Offline</span>
+        </span>
+    </div>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar -->
+            <div class="sidebar no-print">
+                <div class="p-4">
+                    <h4><i class="fas fa-industry me-2"></i>Mechanical Core</h4>
+                    <p class="text-muted mb-0">ERP System</p>
+                </div>
+                <hr class="bg-light">
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="items.html">
+                        <i class="fas fa-box me-2"></i>Items Management
+                    </a>
+                    <a class="nav-link" href="customer.html">
+                        <i class="fas fa-users me-2"></i>Customers
+                    </a>
+                    
+                     <a class="nav-link" href="invoice.html">
+                         <i class="fas fa-file-invoice me-2"></i>Invoice
+                     </a>
+                     
+                    <a class="nav-link active" href="quotation.html">
+                        <i class="fas fa-file-invoice me-2"></i>Quotation
+                    </a>
+                   
+                    <a class="nav-link" href="reports.html">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="settings.html">
+                        <i class="fas fa-cog me-2"></i>Settings
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="p-4">
+                    <!-- Page Header -->
+                    <div class="bg-white p-4 rounded shadow-sm mb-4 no-print">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="mb-1"><i class="fas fa-file-invoice me-2"></i>Quotation Management</h2>
+                                <p class="text-muted mb-0">Create and manage customer quotations</p>
+                            </div>
+                            <button class="btn btn-primary btn-lg" ng-click="quoteCtrl.showNewQuotationModal()">
+                                <i class="fas fa-plus me-2"></i>New Quotation
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- API Offline Warning -->
+                    <div class="alert alert-warning alert-dismissible fade show no-print" role="alert" ng-if="!quoteCtrl.apiOnline">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> Cannot connect to backend server. Please make sure the backend is running on http://localhost:5000
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div class="text-center py-5 no-print" ng-if="quoteCtrl.loading">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Loading quotations...</p>
+                    </div>
+
+                    <!-- Quotation List -->
+                    <div class="card no-print" ng-if="!quoteCtrl.showForm && !quoteCtrl.loading">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Recent Quotations</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Quotation #</th>
+                                            <th>Customer</th>
+                                            <th>Date</th>
+                                            <th>Valid Until</th>
+                                            <th>Total Amount</th>
+                                            <th>Status</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr ng-repeat="quotation in quoteCtrl.quotations">
+                                            <td><strong>{{ quotation.quotation_number }}</strong></td>
+                                            <td>{{ quotation.customer_name }}</td>
+                                            <td>{{ quotation.quotation_date | date:'dd/MM/yyyy' }}</td>
+                                            <td>{{ quotation.valid_until | date:'dd/MM/yyyy' }}</td>
+                                            <td><strong>₹{{ quotation.total_amount | number:2 }}</strong></td>
+                                            <td>
+                                                <span class="badge" ng-class="{
+                                                    'bg-secondary': quotation.status === 'Draft',
+                                                    'bg-success': quotation.status === 'Finalized',
+                                                    'bg-danger': quotation.status === 'Cancelled'
+                                                }">
+                                                    {{ quotation.status }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-primary" 
+                                                            ng-click="quoteCtrl.viewQuotation(quotation)"
+                                                            title="View Quotation">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-info" 
+                                                            ng-click="quoteCtrl.downloadPDF(quotation)"
+                                                            title="Download PDF">
+                                                        <i class="fas fa-download"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                            ng-click="quoteCtrl.deleteQuotation(quotation.id)"
+                                                            title="Delete Quotation">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr ng-if="quoteCtrl.quotations.length === 0">
+                                            <td colspan="7" class="text-center py-5">
+                                                <i class="fas fa-file-invoice fa-4x text-muted mb-3"></i>
+                                                <h5 class="text-muted">No quotations found</h5>
+                                                <p class="text-muted">Click "New Quotation" to create your first quotation.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quotation Form -->
+                    <div class="card" ng-if="quoteCtrl.showForm && !quoteCtrl.showPreview">
+                        <div class="card-header bg-white py-3 no-print">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-edit me-2"></i>
+                                    {{ quoteCtrl.isEditing ? 'Edit Quotation' : 'New Quotation' }}
+                                </h5>
+                                <div>
+                                    <button class="btn btn-secondary me-2" ng-click="quoteCtrl.cancelForm()">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </button>
+                                    <button class="btn btn-success me-2" ng-click="quoteCtrl.previewQuotation()">
+                                        <i class="fas fa-eye me-2"></i>Preview
+                                    </button>
+                                    <button class="btn btn-primary" ng-click="quoteCtrl.saveQuotation()">
+                                        <i class="fas fa-save me-2"></i>Save Quotation
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Quotation Header -->
+                            <!-- In the Quotation Header section, replace the date inputs: -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label class="form-label fw-bold">Quotation Number <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" ng-model="quoteCtrl.currentQuotation.quotation_number" 
+                   placeholder="e.g., QTN-2024-001" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-bold">Quotation Date <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" 
+                   ng-model="quoteCtrl.currentQuotation.quotation_date_display"
+                   ng-change="quoteCtrl.onDateChange()"
+                   placeholder="mm/dd/yyyy" required>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label class="form-label fw-bold">Valid Until</label>
+            <input type="text" class="form-control" 
+                   ng-model="quoteCtrl.currentQuotation.valid_until_display"
+                   ng-change="quoteCtrl.onDateChange()"
+                   placeholder="mm/dd/yyyy">
+        </div>
+    </div>
+</div>
+
+                            <!-- Customer Information -->
+                            <h6 class="text-primary mb-3"><i class="fas fa-user me-2"></i>Customer Information</h6>
+                            <div class="row mb-4">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold">Customer <span class="text-danger">*</span></label>
+                                    <div class="customer-search-container">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" 
+                                                   ng-model="quoteCtrl.customerSearch"
+                                                   ng-keyup="quoteCtrl.searchCustomers()"
+                                                   placeholder="Type customer name...">
+                                            <button class="btn btn-outline-primary" type="button" ng-click="quoteCtrl.showNewCustomerModal()">
+                                                <i class="fas fa-plus me-1"></i> New Customer
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Customer Suggestions Dropdown -->
+                                        <div class="suggestion-dropdown" ng-if="quoteCtrl.customerSuggestions.length > 0">
+                                            <div class="suggestion-item" 
+                                                 ng-repeat="customer in quoteCtrl.customerSuggestions"
+                                                 ng-click="quoteCtrl.selectCustomer(customer)">
+                                                <strong>{{ customer.name }}</strong><br>
+                                                <small class="text-muted">{{ customer.email }} | {{ customer.phone }}</small>
+                                            </div>
+                                            <div class="suggestion-item text-primary" ng-click="quoteCtrl.showNewCustomerModal()">
+                                                <i class="fas fa-plus me-2"></i>Add New Customer
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Selected Customer Info -->
+                                    <div class="customer-info-card" ng-if="quoteCtrl.currentQuotation.customer_id">
+                                        <strong>{{ quoteCtrl.selectedCustomer.name }}</strong><br>
+                                        <small class="text-muted">
+                                            {{ quoteCtrl.selectedCustomer.email }} | {{ quoteCtrl.selectedCustomer.phone }}<br>
+                                            {{ quoteCtrl.selectedCustomer.address }}<br>
+                                            GSTIN: {{ quoteCtrl.selectedCustomer.gstin }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Items Section -->
+                            <h6 class="text-primary mb-3"><i class="fas fa-boxes me-2"></i>Items</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">HSN Code / Item Name</label>
+                                    <input type="text" class="form-control" ng-model="quoteCtrl.itemSearch"
+                                           ng-keyup="quoteCtrl.searchItems()" placeholder="Search items...">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" ng-model="quoteCtrl.newItem.quantity" min="1" value="1">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Unit Price</label>
+                                    <input type="number" class="form-control" ng-model="quoteCtrl.newItem.unit_price" min="0" step="0.01">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Discount %</label>
+                                    <input type="number" class="form-control" ng-model="quoteCtrl.newItem.discount" min="0" max="100" step="0.01">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Tax Rate %</label>
+                                    <input type="number" class="form-control" ng-model="quoteCtrl.newItem.tax_rate" min="0" step="0.01" value="18">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button class="btn btn-success w-100" ng-click="quoteCtrl.addItem()" 
+                                            ng-disabled="!quoteCtrl.selectedItem">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Item Suggestions -->
+                            <div class="suggestion-dropdown" ng-if="quoteCtrl.itemSuggestions.length > 0">
+                                <div class="suggestion-item" ng-repeat="item in quoteCtrl.itemSuggestions" 
+                                     ng-click="quoteCtrl.selectItem(item)">
+                                    <strong>{{ item.code }}</strong> - {{ item.name }}<br>
+                                    <small class="text-muted">HSN: {{ item.hsn_code }} | Stock: {{ item.stock }} | ₹{{ item.unit_price }}</small>
+                                </div>
+                            </div>
+
+                            <!-- Items Table -->
+                            <div class="table-responsive" ng-if="quoteCtrl.currentQuotation.items.length > 0">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Item Code</th>
+                                            <th>Item Name</th>
+                                            <th>HSN Code</th>
+                                            <th>Quantity</th>
+                                            <th>Unit Price</th>
+                                            <th>Discount</th>
+                                            <th>Tax Rate</th>
+                                            <th>Total</th>
+                                            <th width="50">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr ng-repeat="item in quoteCtrl.currentQuotation.items">
+                                            <td>{{ item.item_code }}</td>
+                                            <td>{{ item.item_name }}</td>
+                                            <td>{{ item.hsn_code }}</td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm" 
+                                                       ng-model="item.quantity" min="1" 
+                                                       ng-change="quoteCtrl.calculateItemTotal(item)">
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm" 
+                                                       ng-model="item.unit_price" min="0" step="0.01"
+                                                       ng-change="quoteCtrl.calculateItemTotal(item)">
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm" 
+                                                       ng-model="item.discount" min="0" max="100" step="0.01"
+                                                       ng-change="quoteCtrl.calculateItemTotal(item)">
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm" 
+                                                       ng-model="item.tax_rate" min="0" step="0.01"
+                                                       ng-change="quoteCtrl.calculateItemTotal(item)">
+                                            </td>
+                                            <td><strong>₹{{ item.total_price | number:2 }}</strong></td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-danger" ng-click="quoteCtrl.removeItem($index)">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot class="table-info">
+                                        <tr>
+                                            <td colspan="7" class="text-end"><strong>Subtotal:</strong></td>
+                                            <td colspan="2"><strong>₹{{ quoteCtrl.currentQuotation.subtotal | number:2 }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="7" class="text-end"><strong>Tax Amount:</strong></td>
+                                            <td colspan="2"><strong>₹{{ quoteCtrl.currentQuotation.tax_amount | number:2 }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="7" class="text-end"><strong>Total Amount:</strong></td>
+                                            <td colspan="2"><strong>₹{{ quoteCtrl.currentQuotation.total_amount | number:2 }}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Notes</label>
+                                <textarea class="form-control" ng-model="quoteCtrl.currentQuotation.notes" 
+                                          rows="3" placeholder="Additional notes..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="preview-section" ng-if="quoteCtrl.showPreview">
+                        <div class="company-header">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h3>Mechanical Core</h3>
+                                    <p class="mb-0">ERP System</p>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <h4 class="text-primary">QUOTATION</h4>
+                                    <p class="mb-0"><strong>Quotation #:</strong> {{ quoteCtrl.currentQuotation.quotation_number }}</p>
+                                    <p class="mb-0"><strong>Date:</strong> {{ quoteCtrl.currentQuotation.quotation_date | date:'dd/MM/yyyy' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Details -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6>To:</h6>
+                                <p class="mb-1"><strong>{{ quoteCtrl.selectedCustomer.name }}</strong></p>
+                                <p class="mb-1">{{ quoteCtrl.selectedCustomer.address }}</p>
+                                <p class="mb-1">Email: {{ quoteCtrl.selectedCustomer.email }}</p>
+                                <p class="mb-1">Phone: {{ quoteCtrl.selectedCustomer.phone }}</p>
+                                <p class="mb-0">GSTIN: {{ quoteCtrl.selectedCustomer.gstin }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Items Table -->
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Item Description</th>
+                                        <th>HSN Code</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Discount</th>
+                                        <th>Tax Rate</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="item in quoteCtrl.currentQuotation.items">
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>{{ item.item_name }} ({{ item.item_code }})</td>
+                                        <td>{{ item.hsn_code }}</td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td>₹{{ item.unit_price | number:2 }}</td>
+                                        <td>{{ item.discount }}%</td>
+                                        <td>{{ item.tax_rate }}%</td>
+                                        <td>₹{{ item.total_price | number:2 }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-info">
+                                    <tr>
+                                        <td colspan="7" class="text-end"><strong>Subtotal:</strong></td>
+                                        <td><strong>₹{{ quoteCtrl.currentQuotation.subtotal | number:2 }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="7" class="text-end"><strong>Tax Amount:</strong></td>
+                                        <td><strong>₹{{ quoteCtrl.currentQuotation.tax_amount | number:2 }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="7" class="text-end"><strong>Total Amount:</strong></td>
+                                        <td><strong>₹{{ quoteCtrl.currentQuotation.total_amount | number:2 }}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mt-4" ng-if="quoteCtrl.currentQuotation.notes">
+                            <h6>Notes:</h6>
+                            <p>{{ quoteCtrl.currentQuotation.notes }}</p>
+                        </div>
+
+                        <!-- Validity -->
+                        <div class="mt-4" ng-if="quoteCtrl.currentQuotation.valid_until">
+                            <p><strong>Valid Until:</strong> {{ quoteCtrl.currentQuotation.valid_until | date:'dd/MM/yyyy' }}</p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-4 text-center no-print">
+                            <button class="btn btn-primary me-2" ng-click="quoteCtrl.printPreview()">
+                                <i class="fas fa-print me-2"></i>Print
+                            </button>
+                            <button class="btn btn-success me-2" ng-click="quoteCtrl.downloadPDF()">
+                                <i class="fas fa-download me-2"></i>Download PDF
+                            </button>
+                            <button class="btn btn-secondary" ng-click="quoteCtrl.hidePreview()">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Edit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Customer Modal -->
+    <!-- New Customer Modal - ENHANCED VERSION -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1" aria-labelledby="newCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="newCustomerModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>Add New Customer
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Fill in the customer details below. Only <strong>Name</strong> is required.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Customer Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" 
+                                   ng-model="quoteCtrl.newCustomer.name" 
+                                   placeholder="Enter customer full name"
+                                   required
+                                   autofocus>
+                            <div class="form-text">This field is required</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-control" 
+                                   ng-model="quoteCtrl.newCustomer.email"
+                                   placeholder="customer@example.com">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" 
+                                   ng-model="quoteCtrl.newCustomer.phone"
+                                   placeholder="+91 9876543210">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <textarea class="form-control" 
+                              ng-model="quoteCtrl.newCustomer.address" 
+                              rows="3" 
+                              placeholder="Full address including city, state, and PIN code"></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">GSTIN Number</label>
+                            <input type="text" class="form-control" 
+                                   ng-model="quoteCtrl.newCustomer.gstin"
+                                   placeholder="29ABCDE1234F1Z5"
+                                   maxlength="15">
+                            <div class="form-text">15-character GSTIN (optional)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">State Code</label>
+                            <input type="text" class="form-control" 
+                                   ng-model="quoteCtrl.newCustomer.state_code"
+                                   placeholder="29"
+                                   maxlength="2">
+                            <div class="form-text">2-digit state code (optional)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Debug Information (visible only in development) -->
+                <div class="mt-4 p-3 bg-light rounded" ng-if="false"> <!-- Set to true for debugging -->
+                    <h6 class="text-muted">Debug Information</h6>
+                    <pre class="mb-0 small">{{ quoteCtrl.newCustomer | json }}</pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" ng-click="quoteCtrl.saveNewCustomer()"
+                        ng-disabled="!quoteCtrl.newCustomer.name || quoteCtrl.newCustomer.name.trim() === ''">
+                    <i class="fas fa-save me-1"></i>Save Customer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Load Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Add these to your head section after Bootstrap CSS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- App Scripts -->
+    <script src="app.js"></script>
+    <script src="items.service.js"></script>
+    <script src="customer.service.js"></script>
+    <script src="quotation.service.js"></script>
+    <script src="quotation.controller.js"></script>
+</body>
+</html>

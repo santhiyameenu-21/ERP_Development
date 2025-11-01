@@ -1,0 +1,24 @@
+# app.yaml - CORRECTED VERSION
+runtime: python311
+env: standard
+
+entrypoint: gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 60 backend.main:app
+
+instance_class: F2
+
+env_variables:
+  CLOUD_SQL_CONNECTION_NAME: "erp-deploy:us-central1:erp-mysql-db"
+  MYSQL_USER: "root"
+  MYSQL_PASSWORD: "Root@8.0"
+  MYSQL_DATABASE: "proj_auth_system"
+  SECRET_KEY: "mechanical-core-secret-key-2024"
+  JWT_SECRET_KEY: "jwt-secret-string"
+
+beta_settings:
+  cloud_sql_instances: "erp-deploy:us-central1:erp-mysql-db"
+
+# ✅ FIXED: Use automatic_scaling with F2 instance class
+automatic_scaling:
+  max_instances: 5
+  min_instances: 1
+  target_cpu_utilization: 0.65

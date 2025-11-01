@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="mechanicalCoreERP">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanical Core ERP - Settings</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        [ng\:cloak], [ng-cloak], .ng-cloak {
+            display: none !important;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 16.666667%;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd;
+            padding: 12px 20px;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            margin-left: 16.666667%;
+            min-height: 100vh;
+        }
+        .settings-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .setting-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        .instruction-box {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body ng-controller="SettingsController as settingsCtrl" ng-cloak>
+    
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="p-4">
+                    <h4><i class="fas fa-industry me-2"></i>Mechanical Core</h4>
+                    <p class="text-muted mb-0">ERP System</p>
+                </div>
+                <hr class="bg-light">
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="items.html"><i class="fas fa-box me-2"></i>Items Management</a>
+                    <a class="nav-link" href="customer.html"><i class="fas fa-users me-2"></i>Customers</a>
+                    <a class="nav-link" href="invoice.html"><i class="fas fa-file-invoice me-2"></i>Invoice</a>
+                    <a class="nav-link" href="quotation.html"><i class="fas fa-file-invoice me-2"></i>Quotation</a>
+                    <a class="nav-link" href="reports.html"><i class="fas fa-chart-bar me-2"></i>Reports</a>
+                    <a class="nav-link active" href="settings.html"><i class="fas fa-cog me-2"></i>Settings</a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="bg-white p-4 rounded shadow-sm mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="mb-1"><i class="fas fa-cog me-2"></i>System Settings</h2>
+                                <p class="text-muted mb-0">Configure your ERP system preferences</p>
+                            </div>
+                            <button class="btn btn-success" ng-click="settingsCtrl.saveAllSettings()">
+                                <i class="fas fa-save me-2"></i>Save All Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Success/Error Messages -->
+                    <div class="alert alert-success alert-dismissible fade show" ng-if="settingsCtrl.saveSuccess">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Success!</strong> Settings saved successfully.
+                        <button type="button" class="btn-close" ng-click="settingsCtrl.saveSuccess = false"></button>
+                    </div>
+
+                    <!-- Company Settings -->
+                    <div class="settings-card">
+                        <h4 class="mb-3"><i class="fas fa-building me-2 text-primary"></i>Company Information</h4>
+                        
+                        <div class="instruction-box">
+                            <h6><i class="fas fa-info-circle me-2"></i>Instructions:</h6>
+                            <ul class="mb-0">
+                                <li>Enter your company details to appear on invoices and quotations</li>
+                                <li>GSTIN is mandatory for GST-compliant invoices</li>
+                                <li>Address should include PIN code for proper location identification</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Company Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" ng-model="settingsCtrl.settings.companyName" placeholder="e.g., Mechanical Core Pvt Ltd">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">GSTIN Number</label>
+                                <input type="text" class="form-control" ng-model="settingsCtrl.settings.gstin" placeholder="29ABCDE1234F1Z5" maxlength="15">
+                                <small class="text-muted">15-character GSTIN for GST invoices</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Company Address</label>
+                            <textarea class="form-control" ng-model="settingsCtrl.settings.address" rows="3" placeholder="Full address with city, state, and PIN code"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Phone Number</label>
+                                <input type="tel" class="form-control" ng-model="settingsCtrl.settings.phone" placeholder="+91 98765 43210">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Email</label>
+                                <input type="email" class="form-control" ng-model="settingsCtrl.settings.email" placeholder="info@company.com">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Website</label>
+                                <input type="url" class="form-control" ng-model="settingsCtrl.settings.website" placeholder="www.company.com">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tax Settings -->
+                    <div class="settings-card">
+                        <h4 class="mb-3"><i class="fas fa-percentage me-2 text-success"></i>Tax Settings</h4>
+                        
+                        <div class="instruction-box">
+                            <h6><i class="fas fa-info-circle me-2"></i>Instructions:</h6>
+                            <ul class="mb-0">
+                                <li>Set default tax rate (GST) for all new items - typically 18% in India</li>
+                                <li>Default discount can be overridden per item during invoice creation</li>
+                                <li>Enable tax-inclusive pricing if your prices already include tax</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Default Tax Rate (%)</label>
+                                <input type="number" class="form-control" ng-model="settingsCtrl.settings.defaultTaxRate" min="0" max="100" step="0.01">
+                                <small class="text-muted">Default GST rate for items (usually 18%)</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Default Discount (%)</label>
+                                <input type="number" class="form-control" ng-model="settingsCtrl.settings.defaultDiscount" min="0" max="100" step="0.01">
+                                <small class="text-muted">Default discount on items</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Tax Calculation</label>
+                                <select class="form-select" ng-model="settingsCtrl.settings.taxInclusive">
+                                    <option value="false">Tax Exclusive (Add tax to price)</option>
+                                    <option value="true">Tax Inclusive (Price includes tax)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Settings -->
+                    <div class="settings-card">
+                        <h4 class="mb-3"><i class="fas fa-file-invoice me-2 text-info"></i>Invoice & Quotation Settings</h4>
+                        
+                        <div class="instruction-box">
+                            <h6><i class="fas fa-info-circle me-2"></i>Instructions:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Invoice Prefix:</strong> Appears before invoice number (e.g., INV-2024-001)</li>
+                                <li><strong>Starting Number:</strong> Next invoice will use this number</li>
+                                <li><strong>Payment Terms:</strong> Default due date in days from invoice date</li>
+                                <li><strong>Quotation Validity:</strong> Default number of days quotation remains valid</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Invoice Prefix</label>
+                                <input type="text" class="form-control" ng-model="settingsCtrl.settings.invoicePrefix" placeholder="INV">
+                                <small class="text-muted">e.g., INV, BILL, TAX</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Next Invoice Number</label>
+                                <input type="number" class="form-control" ng-model="settingsCtrl.settings.nextInvoiceNumber" min="1">
+                                <small class="text-muted">Next invoice number to use</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Payment Terms (Days)</label>
+                                <input type="number" class="form-control" ng-model="settingsCtrl.settings.paymentTerms" min="0" max="365">
+                                <small class="text-muted">Default due date period</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Quotation Validity (Days)</label>
+                                <input type="number" class="form-control" ng-model="settingsCtrl.settings.quotationValidity" min="1" max="365">
+                                <small class="text-muted">Default validity period</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Quotation Prefix</label>
+                                <input type="text" class="form-control" ng-model="settingsCtrl.settings.quotationPrefix" placeholder="QTN">
+                                <small class="text-muted">e.g., QTN, QUOTE</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Currency Symbol</label>
+                                <input type="text" class="form-control" ng-model="settingsCtrl.settings.currencySymbol" placeholder="₹">
+                                <small class="text-muted">₹ (Rupee), $ (Dollar), etc.</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Currency Code</label>
+                                <input type="text" class="form-control" ng-model="settingsCtrl.settings.currencyCode" placeholder="INR" maxlength="3">
+                                <small class="text-muted">ISO code: INR, USD, EUR</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stock Settings -->
+                    <div class="settings-card">
+                        <h4 class="mb-3"><i class="fas fa-boxes me-2 text-warning"></i>Stock Management</h4>
+                        
+                        <div class="instruction-box">
+                            <h6><i class="fas fa-info-circle me-2"></i>Instructions:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Low Stock Alert:</strong> Get notified when stock falls below this percentage</li>
+                                <li><strong>Auto-Reduce Stock:</strong> Automatically reduce stock when invoice is finalized</li>
+                                <li><strong>Negative Stock:</strong> Allow selling even when stock is zero (not recommended)</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Low Stock Alert Threshold (%)</label>
+                                <input type="number" class="form-control" ng-model="settingsCtrl.settings.lowStockThreshold" min="0" max="100">
+                                <small class="text-muted">Alert when stock below this %</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Auto-Reduce Stock</label>
+                                <select class="form-select" ng-model="settingsCtrl.settings.autoReduceStock">
+                                    <option value="true">Yes - On invoice finalization</option>
+                                    <option value="false">No - Manual stock management</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Allow Negative Stock</label>
+                                <select class="form-select" ng-model="settingsCtrl.settings.allowNegativeStock">
+                                    <option value="false">No - Prevent overselling</option>
+                                    <option value="true">Yes - Allow negative stock</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Database Settings -->
+                    <div class="settings-card">
+                        <h4 class="mb-3"><i class="fas fa-database me-2 text-danger"></i>Database & Backend Settings</h4>
+                        
+                        <div class="warning-box">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Warning:</h6>
+                            <p class="mb-0">Only change these settings if you know what you're doing. Incorrect settings may cause the system to stop working!</p>
+                        </div>
+
+                        <div class="instruction-box">
+                            <h6><i class="fas fa-info-circle me-2"></i>Instructions:</h6>
+                            <ul class="mb-0">
+                                <li><strong>API URL:</strong> Backend server address (default: http://localhost:5000)</li>
+                                <li><strong>Database Host:</strong> MySQL server IP (currently: Google Cloud SQL)</li>
+                                <li><strong>Database Name:</strong> Database name in MySQL (default: proj_auth_system)</li>
+                                <li>Changes require backend restart to take effect</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">Backend API URL</label>
+                                <input type="text" class="form-control" ng-model="settingsCtrl.settings.apiUrl" placeholder="http://localhost:5000" readonly>
+                                <small class="text-muted">Backend server address (Read-only - configured in services)</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Current Database Configuration:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Host:</strong> 34.47.175.192 (Google Cloud SQL)</li>
+                                <li><strong>Database:</strong> proj_auth_system</li>
+                                <li><strong>User:</strong> root</li>
+                                <li><strong>Connection:</strong> MySQL 8.0</li>
+                            </ul>
+                            <small class="text-muted">To change database settings, edit <code>config.py</code> in backend folder</small>
+                        </div>
+                    </div>
+
+                    <!-- System Maintenance -->
+                    <div class="settings-card">
+                        <h4 class="mb-3"><i class="fas fa-tools me-2 text-secondary"></i>System Maintenance</h4>
+                        
+                        <div class="instruction-box">
+                            <h6><i class="fas fa-info-circle me-2"></i>Instructions:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Clear Cache:</strong> Clears temporary data and refreshes all pages</li>
+                                <li><strong>Backup Database:</strong> Downloads a backup of your database</li>
+                                <li><strong>Reset to Defaults:</strong> Restores all settings to factory defaults</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <button class="btn btn-outline-info w-100" ng-click="settingsCtrl.clearCache()">
+                                    <i class="fas fa-broom me-2"></i>Clear Cache
+                                </button>
+                                <small class="text-muted d-block mt-2">Refresh system data</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <button class="btn btn-outline-success w-100" ng-click="settingsCtrl.backupDatabase()">
+                                    <i class="fas fa-download me-2"></i>Backup Database
+                                </button>
+                                <small class="text-muted d-block mt-2">Export all data</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <button class="btn btn-outline-danger w-100" ng-click="settingsCtrl.resetToDefaults()">
+                                    <i class="fas fa-undo me-2"></i>Reset to Defaults
+                                </button>
+                                <small class="text-muted d-block mt-2">Restore factory settings</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Help & Support -->
+                    <div class="settings-card">
+                        <h4 class="mb-3"><i class="fas fa-question-circle me-2 text-primary"></i>Help & Support</h4>
+                        
+                        <div class="success-box">
+                            <h6><i class="fas fa-lightbulb me-2"></i>Quick Tips:</h6>
+                            <ol class="mb-0">
+                                <li>Save settings after making changes</li>
+                                <li>Test invoice/quotation generation after changing prefixes</li>
+                                <li>Backup database regularly (weekly recommended)</li>
+                                <li>Keep stock alerts enabled to avoid stockouts</li>
+                                <li>Review reports page for business insights</li>
+                            </ol>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6>System Version</h6>
+                                <p><strong>Mechanical Core ERP v1.0</strong></p>
+                                <p class="text-muted mb-0">Last Updated: October 2025</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="text-end mb-4">
+                        <button class="btn btn-lg btn-success" ng-click="settingsCtrl.saveAllSettings()">
+                            <i class="fas fa-save me-2"></i>Save All Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+    // Settings Controller
+    angular.module('mechanicalCoreERP')
+    .controller('SettingsController', ['$scope', '$timeout', function($scope, $timeout) {
+        const vm = this;
+        
+        vm.saveSuccess = false;
+        
+        // Default settings
+        vm.settings = {
+            // Company Info
+            companyName: 'Mechanical Core',
+            gstin: '29ABCDE1234F1Z5',
+            address: '123 Industrial Area, City - 560001',
+            phone: '+91 9876543210',
+            email: 'info@mechanicalcore.com',
+            website: 'www.mechanicalcore.com',
+            
+            // Tax Settings
+            defaultTaxRate: 18,
+            defaultDiscount: 0,
+            taxInclusive: 'false',
+            
+            // Invoice Settings
+            invoicePrefix: 'INV',
+            nextInvoiceNumber: 1,
+            paymentTerms: 15,
+            quotationValidity: 30,
+            quotationPrefix: 'QTN',
+            currencySymbol: '₹',
+            currencyCode: 'INR',
+            
+            // Stock Settings
+            lowStockThreshold: 20,
+            autoReduceStock: 'true',
+            allowNegativeStock: 'false',
+            
+            // System Settings
+            apiUrl: 'http://localhost:5000'
+        };
+        
+        // Load settings from localStorage
+        vm.loadSettings = function() {
+            const saved = localStorage.getItem('mechanicalCoreSettings');
+            if (saved) {
+                try {
+                    vm.settings = JSON.parse(saved);
+                    console.log('✅ Settings loaded from localStorage');
+                } catch (e) {
+                    console.error('❌ Error loading settings:', e);
+                }
+            }
+        };
+        
+        // Save all settings
+        vm.saveAllSettings = function() {
+            try {
+                localStorage.setItem('mechanicalCoreSettings', JSON.stringify(vm.settings));
+                vm.saveSuccess = true;
+                console.log('✅ Settings saved successfully');
+                
+                // Hide success message after 3 seconds
+                $timeout(function() {
+                    vm.saveSuccess = false;
+                }, 3000);
+                
+            } catch (e) {
+                alert('Error saving settings: ' + e.message);
+                console.error('❌ Error saving settings:', e);
+            }
+        };
+        
+        // Clear cache
+        vm.clearCache = function() {
+            if (confirm('This will clear all cached data and refresh the page. Continue?')) {
+                localStorage.removeItem('mechanicalCoreCache');
+                alert('Cache cleared successfully!');
+                location.reload();
+            }
+        };
+        
+        // Backup database
+        vm.backupDatabase = function() {
+            if (confirm('This will create a backup of your database. Continue?')) {
+                // Simulate backup process
+                const backupData = {
+                    timestamp: new Date().toISOString(),
+                    settings: vm.settings,
+                    version: 'v1.0'
+                };
+                
+                // Create downloadable backup file
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "mechanical-core-backup-" + new Date().toISOString().split('T')[0] + ".json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                
+                alert('Backup created successfully! File downloaded.');
+            }
+        };
+        
+        // Reset to defaults
+        vm.resetToDefaults = function() {
+            if (confirm('This will reset ALL settings to factory defaults. This action cannot be undone! Continue?')) {
+                // Reset to default settings
+                vm.settings = {
+                    companyName: 'Mechanical Core',
+                    gstin: '29ABCDE1234F1Z5',
+                    address: '123 Industrial Area, City - 560001',
+                    phone: '+91 9876543210',
+                    email: 'info@mechanicalcore.com',
+                    website: 'www.mechanicalcore.com',
+                    defaultTaxRate: 18,
+                    defaultDiscount: 0,
+                    taxInclusive: 'false',
+                    invoicePrefix: 'INV',
+                    nextInvoiceNumber: 1,
+                    paymentTerms: 15,
+                    quotationValidity: 30,
+                    quotationPrefix: 'QTN',
+                    currencySymbol: '₹',
+                    currencyCode: 'INR',
+                    lowStockThreshold: 20,
+                    autoReduceStock: 'true',
+                    allowNegativeStock: 'false',
+                    apiUrl: 'http://localhost:5000'
+                };
+                
+                // Save immediately
+                vm.saveAllSettings();
+                alert('Settings reset to factory defaults!');
+            }
+        };
+        
+        // Initialize
+        vm.init = function() {
+            console.log('⚙️ Initializing Settings Controller...');
+            vm.loadSettings();
+        };
+        
+        vm.init();
+    }]);
+    </script>
+</body>
+</html>

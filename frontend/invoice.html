@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="mechanicalCoreERP">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanical Core ERP - Quotation Management</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        [ng\:cloak], [ng-cloak], .ng-cloak {
+            display: none !important;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 16.666667%;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd;
+            padding: 12px 20px;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            margin-left: 16.666667%;
+        }
+        .item-row {
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 0;
+        }
+        .preview-section {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .company-header {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        @media print {
+            .sidebar, .btn, .no-print {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+        /* Add to your existing CSS in invoice.html */
+.suggestion-list {
+    position: absolute;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.stock-warning {
+    background-color: #fff3cd !important;
+}
+
+.out-of-stock {
+    background-color: #f8d7da !important;
+}
+
+.form-control[readonly] {
+    background-color: #f8f9fa !important;
+    color: #000 !important;
+}
+    </style>
+</head>
+
+<body ng-controller="InvoiceController as invoiceCtrl" ng-cloak>
+
+    <!-- ✅ API Status Indicator -->
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <span class="badge badge-lg px-3 py-2" ng-class="invoiceCtrl.apiOnline ? 'bg-success' : 'bg-danger'">
+            <i class="fas" ng-class="invoiceCtrl.apiOnline ? 'fa-check-circle' : 'fa-times-circle'"></i>
+            <span ng-if="invoiceCtrl.apiOnline"> API Online</span>
+            <span ng-if="!invoiceCtrl.apiOnline"> API Offline</span>
+        </span>
+    </div>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- ✅ Sidebar -->
+            <div class="sidebar no-print">
+                <div class="p-4">
+                    <h4><i class="fas fa-industry me-2"></i>Mechanical Core</h4>
+                    <p class="text-muted mb-0">ERP System</p>
+                </div>
+                <hr class="bg-light">
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="items.html"><i class="fas fa-box me-2"></i>Items Management</a>
+                    <a class="nav-link" href="customer.html"><i class="fas fa-users me-2"></i>Customers</a>
+                    <a class="nav-link active" href="invoice.html"><i class="fas fa-file-invoice me-2"></i>Invoice</a>
+                    <a class="nav-link" href="quotation.html"><i class="fas fa-file-invoice me-2"></i>Quotation</a>
+                    <a class="nav-link" href="reports.html"><i class="fas fa-chart-bar me-2"></i>Reports</a>
+                    <a class="nav-link" href="settings.html"><i class="fas fa-cog me-2"></i>Settings</a>
+                </nav>
+            </div>
+
+            <!-- ✅ Main Content -->
+            <div class="main-content">
+                <div class="p-4">
+
+                    <!-- Header -->
+                    <div class="bg-white p-4 rounded shadow-sm mb-4 no-print">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="mb-1"><i class="fas fa-file-invoice me-2"></i>Invoice Management</h2>
+                                <p class="text-muted mb-0">Create and manage customer invoices</p>
+                            </div>
+                            <button class="btn btn-primary btn-lg" ng-click="invoiceCtrl.showNewInvoiceModal()">
+                                <i class="fas fa-plus me-2"></i>New Invoice
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ⚠️ API Offline Warning -->
+                    <div class="alert alert-warning no-print" ng-if="!invoiceCtrl.apiOnline">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Backend not reachable at <strong>http://localhost:5000</strong>
+                    </div>
+
+                    <!-- 🔄 Loading Spinner -->
+                    <div class="text-center py-5 no-print" ng-if="invoiceCtrl.loading">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                        <p class="mt-3 text-muted">Loading invoices...</p>
+                    </div>
+
+                    <!-- 🧾 Invoice List -->
+                    <div ng-if="!invoiceCtrl.showForm && !invoiceCtrl.loading">
+                        <div class="card">
+                            <div class="card-header bg-white py-3">
+                                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Recent Invoices</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Invoice #</th>
+                                                <th>Customer</th>
+                                                <th>Date</th>
+                                                <th>Due Date</th>
+                                                <th>Total Amount</th>
+                                                <th>Status</th>
+                                                <th class="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr ng-repeat="invoice in invoiceCtrl.invoices">
+                                                <td><strong>{{ invoice.invoice_number }}</strong></td>
+                                                <td>{{ invoice.customer_name }}</td>
+                                                <td>{{ invoice.invoice_date | date:'dd/MM/yyyy' }}</td>
+                                                <td>{{ invoice.due_date | date:'dd/MM/yyyy' }}</td>
+                                                <td><strong>₹{{ invoice.total_amount | number:2 }}</strong></td>
+                                                <td>
+                                                    <span class="badge"
+                                                          ng-class="{
+                                                            'bg-secondary': invoice.status === 'Draft',
+                                                            'bg-success': invoice.status === 'Finalized',
+                                                            'bg-info': invoice.status === 'Paid',
+                                                            'bg-danger': invoice.status === 'Cancelled'
+                                                          }">
+                                                        {{ invoice.status }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-outline-primary"
+                                                            ng-click="invoiceCtrl.viewInvoice(invoice)">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-success"
+                                                            ng-click="invoiceCtrl.finalizeInvoice(invoice.id)"
+                                                            ng-if="invoice.status === 'Draft'">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-info"
+                                                            ng-click="invoiceCtrl.downloadPDF(invoice)">
+                                                        <i class="fas fa-download"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                            ng-click="invoiceCtrl.deleteInvoice(invoice.id)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr ng-if="invoiceCtrl.invoices.length === 0">
+                                                <td colspan="7" class="text-center py-5 text-muted">
+                                                    <i class="fas fa-file-invoice fa-3x mb-3"></i><br>
+                                                    No invoices found.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 🧾 Invoice Form Modal -->
+                    <div class="modal fade show d-block" ng-if="invoiceCtrl.showForm" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-file-invoice me-2"></i>
+                                        {{ invoiceCtrl.isEditing ? 'Edit Invoice' : 'New Invoice' }}
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" ng-click="invoiceCtrl.cancelForm()"></button>
+                                </div>
+                                <div class="modal-body">
+                                    
+                                    <!-- ⚠️ Stock Warnings -->
+                                    <div class="alert alert-warning" ng-if="invoiceCtrl.stockWarnings.length > 0">
+                                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Stock Warnings</h6>
+                                        <ul class="mb-0">
+                                            <li ng-repeat="warning in invoiceCtrl.stockWarnings">
+                                                <strong>{{ warning.item_code }}</strong>: 
+                                                Available: {{ warning.available_stock }}, Required: {{ warning.required_stock }}
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <!-- Basic Info -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Invoice Number</label>
+                                            <input type="text" class="form-control" ng-model="invoiceCtrl.currentInvoice.invoice_number">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Invoice Date</label>
+                                            <input type="date" class="form-control" ng-model="invoiceCtrl.currentInvoice.invoice_date">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Due Date</label>
+                                            <input type="date" class="form-control" ng-model="invoiceCtrl.currentInvoice.due_date">
+                                        </div>
+                                    </div>
+
+                                    <!-- Customer Selection -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-8">
+                                            <label class="form-label">Customer</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" 
+                                                       ng-model="invoiceCtrl.customerSearch"
+                                                       ng-keyup="invoiceCtrl.searchCustomers()"
+                                                       placeholder="Search customers...">
+                                               
+                                            </div>
+                                            <!-- Customer Suggestions -->
+                                            <div class="suggestion-list" ng-if="invoiceCtrl.customerSuggestions.length > 0">
+                                                <div class="suggestion-item" 
+                                                     ng-repeat="customer in invoiceCtrl.customerSuggestions"
+                                                     ng-click="invoiceCtrl.selectCustomer(customer)">
+                                                    <strong>{{ customer.name }}</strong><br>
+                                                    <small class="text-muted">{{ customer.email }} | {{ customer.phone }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Status</label>
+                                            <select class="form-control" ng-model="invoiceCtrl.currentInvoice.status">
+                                                <option value="Draft">Draft</option>
+                                                <option value="Finalized">Finalized</option>
+                                                <option value="Paid">Paid</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Selected Customer Info -->
+                                    <div class="card mb-4" ng-if="invoiceCtrl.selectedCustomer.name">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Customer Information</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <strong>Name:</strong> {{ invoiceCtrl.selectedCustomer.name }}<br>
+                                                    <strong>Email:</strong> {{ invoiceCtrl.selectedCustomer.email }}<br>
+                                                    <strong>Phone:</strong> {{ invoiceCtrl.selectedCustomer.phone }}
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <strong>GSTIN:</strong> {{ invoiceCtrl.selectedCustomer.gstin }}<br>
+                                                    <strong>Address:</strong> {{ invoiceCtrl.selectedCustomer.address }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Items Section -->
+                                    <div class="mb-4">
+                                        <h5 class="mb-3">Items</h5>
+                                        
+                                        <!-- Item Search and Add -->
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-5">
+                                                        <label class="form-label">Search Item</label>
+                                                        <input type="text" class="form-control" 
+                                                               ng-model="invoiceCtrl.itemSearch"
+                                                               ng-keyup="invoiceCtrl.searchItems()"
+                                                               placeholder="Search by code, name or HSN...">
+                                                        <!-- Item Suggestions -->
+                                                        <div class="suggestion-list" ng-if="invoiceCtrl.itemSuggestions.length > 0">
+                                                            <div class="suggestion-item" 
+                                                                 ng-repeat="item in invoiceCtrl.itemSuggestions"
+                                                                 ng-click="invoiceCtrl.selectItem(item)">
+                                                                <strong>{{ item.code }}</strong> - {{ item.name }}<br>
+                                                                <small class="text-muted">
+                                                                    HSN: {{ item.hsn_code }} | Stock: {{ item.stock }} | ₹{{ item.unit_price }}
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Quantity</label>
+                                                        <input type="number" class="form-control" ng-model="invoiceCtrl.newItem.quantity" min="1">
+                                                    </div>
+                                                   <!-- In the Add Item section -->
+<div class="col-md-2">
+    <label class="form-label">Unit Price</label>
+    <input type="number" class="form-control" 
+           ng-model="invoiceCtrl.newItem.unit_price" 
+           step="0.01" 
+           min="0" 
+           readonly 
+           style="background-color: #f8f9fa; cursor: not-allowed;">
+    <small class="text-muted">Auto-filled from item</small>
+</div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Discount %</label>
+                                                        <input type="number" class="form-control" ng-model="invoiceCtrl.newItem.discount" min="0" max="100">
+                                                    </div>
+                                                    <div class="col-md-1">
+                                                        <label class="form-label">&nbsp;</label>
+                                                        <button class="btn btn-primary w-100" ng-click="invoiceCtrl.addItem()" ng-disabled="!invoiceCtrl.selectedItem">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Items Table -->
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Item Code</th>
+                                                        <th>Item Name</th>
+                                                        <th>HSN Code</th>
+                                                        <th>Quantity</th>
+                                                        <th>Unit Price</th>
+                                                        <th>Discount %</th>
+                                                        <th>Tax Rate %</th>
+                                                        <th>Total</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr ng-repeat="item in invoiceCtrl.currentInvoice.items" 
+                                                        ng-class="{'stock-warning': item.available_stock < item.quantity && item.available_stock > 0, 'out-of-stock': item.available_stock < 1}">
+                                                        <td>{{ item.item_code }}</td>
+                                                        <td>{{ item.item_name }}</td>
+                                                        <td>{{ item.hsn_code }}</td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" 
+                                                                   ng-model="item.quantity" 
+                                                                   ng-change="invoiceCtrl.calculateItemTotal(item); invoiceCtrl.checkStock()"
+                                                                   min="1">
+                                                            <small class="text-muted" ng-if="item.available_stock !== undefined">
+                                                                Stock: {{ item.available_stock }}
+                                                            </small>
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" 
+                                                                   ng-model="item.unit_price" 
+                                                                   ng-change="invoiceCtrl.calculateItemTotal(item)"
+                                                                   step="0.01" min="0">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" 
+                                                                   ng-model="item.discount" 
+                                                                   ng-change="invoiceCtrl.calculateItemTotal(item)"
+                                                                   min="0" max="100">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" 
+                                                                   ng-model="item.tax_rate" 
+                                                                   ng-change="invoiceCtrl.calculateItemTotal(item)"
+                                                                   min="0" max="100">
+                                                        </td>
+                                                        <td>₹{{ item.total_price | number:2 }}</td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-danger" ng-click="invoiceCtrl.removeItem($index)">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr ng-if="invoiceCtrl.currentInvoice.items.length === 0">
+                                                        <td colspan="9" class="text-center text-muted py-3">
+                                                            No items added. Search and add items above.
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notes -->
+                                    <div class="mb-4">
+                                        <label class="form-label">Notes</label>
+                                        <textarea class="form-control" ng-model="invoiceCtrl.currentInvoice.notes" rows="3" placeholder="Additional notes..."></textarea>
+                                    </div>
+
+                                    <!-- Totals -->
+                                    <div class="row">
+                                        <div class="col-md-6 offset-md-6">
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <strong>Subtotal:</strong>
+                                                        <span>₹{{ invoiceCtrl.currentInvoice.subtotal | number:2 }}</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <strong>Tax Amount:</strong>
+                                                        <span>₹{{ invoiceCtrl.currentInvoice.tax_amount | number:2 }}</span>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="d-flex justify-content-between mb-0">
+                                                        <strong>Total Amount:</strong>
+                                                        <span class="h5 text-primary">₹{{ invoiceCtrl.currentInvoice.total_amount | number:2 }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" ng-click="invoiceCtrl.cancelForm()">Cancel</button>
+                                    <button type="button" class="btn btn-info" ng-click="invoiceCtrl.previewInvoice()" 
+                                            ng-disabled="!invoiceCtrl.currentInvoice.customer_id || invoiceCtrl.currentInvoice.items.length === 0">
+                                        <i class="fas fa-eye me-1"></i>Preview
+                                    </button>
+                                    <button type="button" class="btn btn-success" ng-click="invoiceCtrl.finalizeCurrentInvoice()"
+                                            ng-disabled="!invoiceCtrl.currentInvoice.customer_id || invoiceCtrl.currentInvoice.items.length === 0">
+                                        <i class="fas fa-check me-1"></i>Finalize
+                                    </button>
+                                    <button type="button" class="btn btn-primary" ng-click="invoiceCtrl.saveInvoice()"
+                                            ng-disabled="!invoiceCtrl.currentInvoice.customer_id || invoiceCtrl.currentInvoice.items.length === 0">
+                                        <i class="fas fa-save me-1"></i>Save Draft
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 🧾 Invoice Preview Modal -->
+                    <div class="modal fade show d-block" ng-if="invoiceCtrl.showPreview" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header bg-info text-white">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-print me-2"></i>Invoice Preview
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" ng-click="invoiceCtrl.hidePreview()"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="preview-section" id="invoice-preview">
+                                        <!-- Company Header -->
+                                        <div class="company-header text-center mb-4">
+                                            <h2 class="text-success mb-1">Mechanical Core</h2>
+                                            <p class="text-muted mb-1">Manufacturing & Engineering Solutions</p>
+                                            <p class="mb-0">123 Industrial Area, City - 560001 | GSTIN: 29ABCDE1234F1Z5</p>
+                                        </div>
+                                        
+                                        <!-- Invoice Header -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-6">
+                                                <h4 class="text-primary">TAX INVOICE</h4>
+                                                <p class="mb-1"><strong>Invoice #:</strong> {{ invoiceCtrl.currentInvoice.invoice_number }}</p>
+                                                <p class="mb-1"><strong>Date:</strong> {{ invoiceCtrl.currentInvoice.invoice_date | date:'dd/MM/yyyy' }}</p>
+                                                <p class="mb-0"><strong>Due Date:</strong> {{ invoiceCtrl.currentInvoice.due_date | date:'dd/MM/yyyy' }}</p>
+                                            </div>
+                                            <div class="col-md-6 text-end">
+                                                <p class="mb-1"><strong>Status:</strong> 
+                                                    <span class="badge" ng-class="{
+                                                        'bg-secondary': invoiceCtrl.currentInvoice.status === 'Draft',
+                                                        'bg-success': invoiceCtrl.currentInvoice.status === 'Finalized',
+                                                        'bg-info': invoiceCtrl.currentInvoice.status === 'Paid',
+                                                        'bg-danger': invoiceCtrl.currentInvoice.status === 'Cancelled'
+                                                    }">
+                                                        {{ invoiceCtrl.currentInvoice.status }}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Customer Details -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-6">
+                                                <div class="card">
+                                                    <div class="card-header bg-light">
+                                                        <strong>Bill To:</strong>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <p class="mb-1"><strong>{{ invoiceCtrl.selectedCustomer.name }}</strong></p>
+                                                        <p class="mb-1" ng-if="invoiceCtrl.selectedCustomer.address">{{ invoiceCtrl.selectedCustomer.address }}</p>
+                                                        <p class="mb-1" ng-if="invoiceCtrl.selectedCustomer.gstin">GSTIN: {{ invoiceCtrl.selectedCustomer.gstin }}</p>
+                                                        <p class="mb-1" ng-if="invoiceCtrl.selectedCustomer.phone">Phone: {{ invoiceCtrl.selectedCustomer.phone }}</p>
+                                                        <p class="mb-0" ng-if="invoiceCtrl.selectedCustomer.email">Email: {{ invoiceCtrl.selectedCustomer.email }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Items Table -->
+                                        <div class="table-responsive mb-4">
+                                            <table class="table table-bordered">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Item Code</th>
+                                                        <th>Description</th>
+                                                        <th>HSN Code</th>
+                                                        <th>Quantity</th>
+                                                        <th>Unit Price</th>
+                                                        <th>Discount %</th>
+                                                        <th>Tax Rate %</th>
+                                                        <th>Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr ng-repeat="item in invoiceCtrl.currentInvoice.items">
+                                                        <td>{{ $index + 1 }}</td>
+                                                        <td>{{ item.item_code }}</td>
+                                                        <td>{{ item.item_name }}</td>
+                                                        <td>{{ item.hsn_code }}</td>
+                                                        <td>{{ item.quantity }}</td>
+                                                        <td>₹{{ item.unit_price | number:2 }}</td>
+                                                        <td>{{ item.discount }}%</td>
+                                                        <td>{{ item.tax_rate }}%</td>
+                                                        <td>₹{{ item.total_price | number:2 }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <!-- Totals -->
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <p class="mb-2" ng-if="invoiceCtrl.currentInvoice.notes">
+                                                            <strong>Notes:</strong><br>
+                                                            {{ invoiceCtrl.currentInvoice.notes }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between mb-2">
+                                                            <strong>Subtotal:</strong>
+                                                            <span>₹{{ invoiceCtrl.currentInvoice.subtotal | number:2 }}</span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between mb-2">
+                                                            <strong>Tax Amount:</strong>
+                                                            <span>₹{{ invoiceCtrl.currentInvoice.tax_amount | number:2 }}</span>
+                                                        </div>
+                                                        <hr>
+                                                        <div class="d-flex justify-content-between mb-0">
+                                                            <strong class="h5">Total Amount:</strong>
+                                                            <span class="h4 text-primary">₹{{ invoiceCtrl.currentInvoice.total_amount | number:2 }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Footer -->
+                                        <div class="row mt-4 pt-4 border-top">
+                                            <div class="col-md-6 text-center">
+                                                <p class="mb-1"><strong>Authorized Signatory</strong></p>
+                                                <p>Mechanical Core</p>
+                                            </div>
+                                            <div class="col-md-6 text-center">
+                                                <p class="mb-1"><strong>Customer Acceptance</strong></p>
+                                                <p>Signature & Stamp</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" ng-click="invoiceCtrl.hidePreview()">Close</button>
+                                    <button type="button" class="btn btn-info" ng-click="invoiceCtrl.printPreview()">
+                                        <i class="fas fa-print me-1"></i>Print
+                                    </button>
+                                    <button type="button" class="btn btn-primary" ng-click="invoiceCtrl.downloadPDF()">
+                                        <i class="fas fa-download me-1"></i>Download PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 🧾 New Customer Modal -->
+                    <div class="modal fade" id="newCustomerModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-user-plus me-2"></i>New Customer
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Name *</label>
+                                        <input type="text" class="form-control" ng-model="invoiceCtrl.newCustomer.name" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" ng-model="invoiceCtrl.newCustomer.email">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Phone</label>
+                                        <input type="tel" class="form-control" ng-model="invoiceCtrl.newCustomer.phone">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Address</label>
+                                        <textarea class="form-control" ng-model="invoiceCtrl.newCustomer.address" rows="2"></textarea>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">GSTIN</label>
+                                                <input type="text" class="form-control" ng-model="invoiceCtrl.newCustomer.gstin">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">State Code</label>
+                                                <input type="text" class="form-control" ng-model="invoiceCtrl.newCustomer.state_code">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-success" ng-click="invoiceCtrl.saveNewCustomer()">Save Customer</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Add these to your head section after Bootstrap CSS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- App Scripts -->
+    <script src="app.js"></script>
+    <script src="items.service.js"></script>
+    <script src="customer.service.js"></script>
+    <script src="invoice.service.js"></script>
+    <script src="invoice.controller.js"></script>
+</body>
+</html>

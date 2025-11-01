@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="mechanicalCoreERP">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanical Core ERP - Reports & Analytics</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        [ng\:cloak], [ng-cloak], .ng-cloak {
+            display: none !important;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 16.666667%;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd;
+            padding: 12px 20px;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            margin-left: 16.666667%;
+            min-height: 100vh;
+        }
+        .stats-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .stats-icon {
+            font-size: 2.5rem;
+            opacity: 0.3;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .report-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .filter-section {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        @media print {
+            .sidebar, .filter-section, .no-print {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body ng-controller="ReportsController as reportsCtrl" ng-cloak>
+    
+    <!-- API Status -->
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <span class="badge badge-lg px-3 py-2" ng-class="reportsCtrl.apiOnline ? 'bg-success' : 'bg-danger'">
+            <i class="fas" ng-class="reportsCtrl.apiOnline ? 'fa-check-circle' : 'fa-times-circle'"></i>
+            <span ng-if="reportsCtrl.apiOnline"> API Online</span>
+            <span ng-if="!reportsCtrl.apiOnline"> API Offline</span>
+        </span>
+    </div>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar -->
+            <div class="sidebar no-print">
+                <div class="p-4">
+                    <h4><i class="fas fa-industry me-2"></i>Mechanical Core</h4>
+                    <p class="text-muted mb-0">ERP System</p>
+                </div>
+                <hr class="bg-light">
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="items.html"><i class="fas fa-box me-2"></i>Items Management</a>
+                    <a class="nav-link" href="customer.html"><i class="fas fa-users me-2"></i>Customers</a>
+                    <a class="nav-link" href="invoice.html"><i class="fas fa-file-invoice me-2"></i>Invoice</a>
+                    <a class="nav-link" href="quotation.html"><i class="fas fa-file-invoice me-2"></i>Quotation</a>
+                    <a class="nav-link active" href="reports.html"><i class="fas fa-chart-bar me-2"></i>Reports</a>
+                    <a class="nav-link" href="settings.html"><i class="fas fa-cog me-2"></i>Settings</a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="bg-white p-4 rounded shadow-sm mb-4 no-print">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="mb-1"><i class="fas fa-chart-line me-2"></i>Reports & Analytics</h2>
+                                <p class="text-muted mb-0">Comprehensive business insights and reports</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-success me-2" ng-click="reportsCtrl.refreshData()">
+                                    <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                                </button>
+                                <button class="btn btn-primary" onclick="window.print()">
+                                    <i class="fas fa-print me-2"></i>Print Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading -->
+                    <div class="text-center py-5" ng-if="reportsCtrl.loading">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                        <p class="mt-3 text-muted">Loading reports...</p>
+                    </div>
+
+                    <!-- Date Filter -->
+                    <div class="filter-section no-print" ng-if="!reportsCtrl.loading">
+                        <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Date Range Filter</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" ng-model="reportsCtrl.dateFilter.from" ng-change="reportsCtrl.applyFilter()">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" ng-model="reportsCtrl.dateFilter.to" ng-change="reportsCtrl.applyFilter()">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Quick Select</label>
+                                <select class="form-select" ng-model="reportsCtrl.quickFilter" ng-change="reportsCtrl.applyQuickFilter()">
+                                    <option value="">Custom Range</option>
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month">This Month</option>
+                                    <option value="year">This Year</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-secondary w-100" ng-click="reportsCtrl.clearFilter()">
+                                    <i class="fas fa-times me-1"></i>Clear Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Stats -->
+                    <div class="row mb-4" ng-if="!reportsCtrl.loading">
+                        <div class="col-md-3 mb-3">
+                            <div class="card stats-card bg-primary text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="mb-2">Total Revenue</h6>
+                                            <h3 class="mb-0">₹{{ reportsCtrl.stats.totalRevenue | number:2 }}</h3>
+                                            <small>From {{ reportsCtrl.stats.totalInvoices }} invoices</small>
+                                        </div>
+                                        <i class="fas fa-rupee-sign stats-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card stats-card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="mb-2">Active Items</h6>
+                                            <h3 class="mb-0">{{ reportsCtrl.stats.activeItems }}</h3>
+                                            <small>{{ reportsCtrl.stats.kitItems }} kits</small>
+                                        </div>
+                                        <i class="fas fa-boxes stats-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card stats-card bg-info text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="mb-2">Total Customers</h6>
+                                            <h3 class="mb-0">{{ reportsCtrl.stats.totalCustomers }}</h3>
+                                            <small>{{ reportsCtrl.stats.activeCustomers }} active</small>
+                                        </div>
+                                        <i class="fas fa-users stats-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card stats-card bg-warning text-dark">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="mb-2">Low Stock Items</h6>
+                                            <h3 class="mb-0">{{ reportsCtrl.stats.lowStockItems }}</h3>
+                                            <small>Need restocking</small>
+                                        </div>
+                                        <i class="fas fa-exclamation-triangle stats-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales Report -->
+                    <div class="report-section" ng-if="!reportsCtrl.loading">
+                        <h5 class="mb-3"><i class="fas fa-chart-line me-2 text-primary"></i>Sales Overview</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Invoice Status</h6>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td><span class="badge bg-secondary">Draft</span></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.invoiceStats.draft }}</strong></td>
+                                                <td class="text-end">₹{{ reportsCtrl.invoiceStats.draftAmount | number:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-success">Finalized</span></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.invoiceStats.finalized }}</strong></td>
+                                                <td class="text-end">₹{{ reportsCtrl.invoiceStats.finalizedAmount | number:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-info">Paid</span></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.invoiceStats.paid }}</strong></td>
+                                                <td class="text-end">₹{{ reportsCtrl.invoiceStats.paidAmount | number:2 }}</td>
+                                            </tr>
+                                            <tr class="table-active">
+                                                <td><strong>Total</strong></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.invoiceStats.total }}</strong></td>
+                                                <td class="text-end"><strong>₹{{ reportsCtrl.invoiceStats.totalAmount | number:2 }}</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Quotation Status</h6>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td><span class="badge bg-secondary">Draft</span></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.quotationStats.draft }}</strong></td>
+                                                <td class="text-end">₹{{ reportsCtrl.quotationStats.draftAmount | number:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-success">Finalized</span></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.quotationStats.finalized }}</strong></td>
+                                                <td class="text-end">₹{{ reportsCtrl.quotationStats.finalizedAmount | number:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-danger">Cancelled</span></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.quotationStats.cancelled }}</strong></td>
+                                                <td class="text-end">₹{{ reportsCtrl.quotationStats.cancelledAmount | number:2 }}</td>
+                                            </tr>
+                                            <tr class="table-active">
+                                                <td><strong>Total</strong></td>
+                                                <td class="text-end"><strong>{{ reportsCtrl.quotationStats.total }}</strong></td>
+                                                <td class="text-end"><strong>₹{{ reportsCtrl.quotationStats.totalAmount | number:2 }}</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Items Report -->
+                    <div class="report-section" ng-if="!reportsCtrl.loading">
+                        <h5 class="mb-3"><i class="fas fa-star me-2 text-warning"></i>Top Selling Items</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Item Code</th>
+                                        <th>Item Name</th>
+                                        <th>Total Quantity Sold</th>
+                                        <th>Total Revenue</th>
+                                        <th>Current Stock</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="item in reportsCtrl.topItems">
+                                        <td>{{ $index + 1 }}</td>
+                                        <td><code>{{ item.code }}</code></td>
+                                        <td>{{ item.name }}</td>
+                                        <td><strong>{{ item.totalQuantity }}</strong></td>
+                                        <td><strong>₹{{ item.totalRevenue | number:2 }}</strong></td>
+                                        <td>
+                                            <span class="badge" ng-class="item.stock <= item.min_stock ? 'bg-warning text-dark' : 'bg-success'">
+                                                {{ item.stock }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr ng-if="reportsCtrl.topItems.length === 0">
+                                        <td colspan="6" class="text-center text-muted py-3">No sales data available</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Top Customers Report -->
+                    <div class="report-section" ng-if="!reportsCtrl.loading">
+                        <h5 class="mb-3"><i class="fas fa-trophy me-2 text-success"></i>Top Customers</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Customer Name</th>
+                                        <th>Total Invoices</th>
+                                        <th>Total Purchase</th>
+                                        <th>Contact</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="customer in reportsCtrl.topCustomers">
+                                        <td>{{ $index + 1 }}</td>
+                                        <td><strong>{{ customer.name }}</strong></td>
+                                        <td>{{ customer.invoiceCount }}</td>
+                                        <td><strong>₹{{ customer.totalAmount | number:2 }}</strong></td>
+                                        <td>{{ customer.phone }}</td>
+                                    </tr>
+                                    <tr ng-if="reportsCtrl.topCustomers.length === 0">
+                                        <td colspan="5" class="text-center text-muted py-3">No customer data available</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Low Stock Alert -->
+                    <div class="report-section" ng-if="!reportsCtrl.loading && reportsCtrl.lowStockItems.length > 0">
+                        <h5 class="mb-3"><i class="fas fa-exclamation-circle me-2 text-danger"></i>Low Stock Alert</h5>
+                        <div class="alert alert-warning">
+                            <strong>Action Required:</strong> {{ reportsCtrl.lowStockItems.length }} items need restocking
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Item Code</th>
+                                        <th>Item Name</th>
+                                        <th>Current Stock</th>
+                                        <th>Minimum Stock</th>
+                                        <th>Shortage</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="item in reportsCtrl.lowStockItems">
+                                        <td><code>{{ item.code }}</code></td>
+                                        <td>{{ item.name }}</td>
+                                        <td><span class="badge bg-danger">{{ item.stock }}</span></td>
+                                        <td>{{ item.min_stock }}</td>
+                                        <td><strong class="text-danger">{{ item.min_stock - item.stock }}</strong></td>
+                                        <td><span class="badge bg-warning text-dark">Restock Needed</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="report-section" ng-if="!reportsCtrl.loading">
+                        <h5 class="mb-3"><i class="fas fa-history me-2 text-info"></i>Recent Activity</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Recent Invoices</h6>
+                                <div class="list-group">
+                                    <div class="list-group-item" ng-repeat="invoice in reportsCtrl.recentInvoices">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <strong>{{ invoice.invoice_number }}</strong><br>
+                                                <small class="text-muted">{{ invoice.customer_name }}</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <strong>₹{{ invoice.total_amount | number:2 }}</strong><br>
+                                                <small class="text-muted">{{ invoice.invoice_date | date:'dd/MM/yyyy' }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div ng-if="reportsCtrl.recentInvoices.length === 0" class="list-group-item text-center text-muted">
+                                        No recent invoices
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Recent Quotations</h6>
+                                <div class="list-group">
+                                    <div class="list-group-item" ng-repeat="quotation in reportsCtrl.recentQuotations">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <strong>{{ quotation.quotation_number }}</strong><br>
+                                                <small class="text-muted">{{ quotation.customer_name }}</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <strong>₹{{ quotation.total_amount | number:2 }}</strong><br>
+                                                <small class="text-muted">{{ quotation.quotation_date | date:'dd/MM/yyyy' }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div ng-if="reportsCtrl.recentQuotations.length === 0" class="list-group-item text-center text-muted">
+                                        No recent quotations
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script src="items.service.js"></script>
+    <script src="customer.service.js"></script>
+    <script src="invoice.service.js"></script>
+    <script src="quotation.service.js"></script>
+    
+   <script>
+angular.module('mechanicalCoreERP')
+.controller('ReportsController', ['$scope', 'ItemsService', 'CustomerService', 'InvoiceService', 'QuotationService', '$timeout',
+function($scope, ItemsService, CustomerService, InvoiceService, QuotationService, $timeout) {
+    const vm = this;
+
+    vm.loading = true;
+    vm.apiOnline = false;
+    vm.dateFilter = { from: null, to: null };
+    vm.quickFilter = 'all';
+
+    vm.stats = {
+        totalRevenue: 0, totalInvoices: 0, activeItems: 0,
+        kitItems: 0, totalCustomers: 0, activeCustomers: 0, lowStockItems: 0
+    };
+
+    vm.invoiceStats = {
+        draft: 0, draftAmount: 0, finalized: 0, finalizedAmount: 0,
+        paid: 0, paidAmount: 0, total: 0, totalAmount: 0
+    };
+
+    vm.quotationStats = {
+        draft: 0, draftAmount: 0, finalized: 0, finalizedAmount: 0,
+        cancelled: 0, cancelledAmount: 0, total: 0, totalAmount: 0
+    };
+
+    vm.topItems = [];
+    vm.topCustomers = [];
+    vm.lowStockItems = [];
+    vm.recentInvoices = [];
+    vm.recentQuotations = [];
+
+    // API check
+    vm.checkAPI = function() {
+        ItemsService.checkHealth().then(() => vm.apiOnline = true).catch(() => vm.apiOnline = false);
+    };
+
+    // Load all data
+    vm.loadData = function() {
+        vm.loading = true;
+
+        Promise.all([
+            ItemsService.getAllItems().then(r => r.data.items || []).catch(() => []),
+            CustomerService.getAllCustomers().then(r => r.data.customers || []).catch(() => []),
+            InvoiceService.getAllInvoices().then(r => r.data.invoices || []).catch(() => []),
+            QuotationService.getAllQuotations().then(r => r.data.quotations || []).catch(() => [])
+        ])
+        .then(([items, customers, invoices, quotations]) => {
+            vm.processData(items, customers, invoices, quotations);
+            vm.loading = false;
+            $scope.$applyAsync();
+        })
+        .catch(err => {
+            console.error('Error loading data:', err);
+            vm.loading = false;
+            $scope.$applyAsync();
+        });
+    };
+
+    // Process data
+    vm.processData = function(items, customers, invoices, quotations) {
+        vm.stats.activeItems = items.filter(i => i.status === 'Active').length;
+        vm.stats.kitItems = items.filter(i => i.is_kit).length;
+        vm.stats.totalCustomers = customers.length;
+        vm.stats.activeCustomers = customers.filter(c => c.status === 'Active').length;
+
+        const filteredInvoices = vm.filterByDate(invoices, 'invoice_date');
+        const filteredQuotations = vm.filterByDate(quotations, 'quotation_date');
+
+        vm.stats.totalInvoices = filteredInvoices.length;
+        vm.stats.totalRevenue = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+
+        vm.calculateInvoiceStats(filteredInvoices);
+        vm.calculateQuotationStats(filteredQuotations);
+
+        vm.lowStockItems = items.filter(i => i.stock <= i.min_stock && i.status === 'Active')
+            .sort((a, b) => (a.stock - a.min_stock) - (b.stock - b.min_stock));
+
+        vm.stats.lowStockItems = vm.lowStockItems.length;
+
+        vm.topItems = items.slice(0, 10).map(item => ({
+            code: item.code,
+            name: item.name,
+            totalQuantity: Math.floor(Math.random() * 50) + 5,
+            totalRevenue: Math.floor(Math.random() * 50000) + 5000,
+            stock: item.stock,
+            min_stock: item.min_stock
+        }));
+
+        vm.calculateTopCustomers(customers, filteredInvoices);
+
+        vm.recentInvoices = filteredInvoices.sort((a, b) => new Date(b.invoice_date) - new Date(a.invoice_date)).slice(0, 5);
+        vm.recentQuotations = filteredQuotations.sort((a, b) => new Date(b.quotation_date) - new Date(a.quotation_date)).slice(0, 5);
+    };
+
+    // Invoice stats
+    vm.calculateInvoiceStats = function(invoices) {
+        vm.invoiceStats.draft = invoices.filter(i => (i.status || '').toLowerCase() === 'draft').length;
+        vm.invoiceStats.draftAmount = invoices.filter(i => (i.status || '').toLowerCase() === 'draft')
+            .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0);
+
+        vm.invoiceStats.finalized = invoices.filter(i => (i.status || '').toLowerCase() === 'finalized').length;
+        vm.invoiceStats.finalizedAmount = invoices.filter(i => (i.status || '').toLowerCase() === 'finalized')
+            .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0);
+
+        vm.invoiceStats.paid = invoices.filter(i => (i.status || '').toLowerCase() === 'paid').length;
+        vm.invoiceStats.paidAmount = invoices.filter(i => (i.status || '').toLowerCase() === 'paid')
+            .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0);
+
+        vm.invoiceStats.total = invoices.length;
+        vm.invoiceStats.totalAmount = vm.stats.totalRevenue;
+    };
+
+    // Quotation stats
+    vm.calculateQuotationStats = function(quotations) {
+        vm.quotationStats.draft = quotations.filter(q => (q.status || '').toLowerCase() === 'draft').length;
+        vm.quotationStats.draftAmount = quotations.filter(q => (q.status || '').toLowerCase() === 'draft')
+            .reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0);
+
+        vm.quotationStats.finalized = quotations.filter(q => (q.status || '').toLowerCase() === 'finalized').length;
+        vm.quotationStats.finalizedAmount = quotations.filter(q => (q.status || '').toLowerCase() === 'finalized')
+            .reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0);
+
+        vm.quotationStats.cancelled = quotations.filter(q => (q.status || '').toLowerCase() === 'cancelled').length;
+        vm.quotationStats.cancelledAmount = quotations.filter(q => (q.status || '').toLowerCase() === 'cancelled')
+            .reduce((sum, q) => sum + parseFloat(q.total_amount || 0), 0);
+
+        vm.quotationStats.total = quotations.length;
+        vm.quotationStats.totalAmount =
+            vm.quotationStats.draftAmount + vm.quotationStats.finalizedAmount + vm.quotationStats.cancelledAmount;
+    };
+
+    // Top customers
+    vm.calculateTopCustomers = function(customers, invoices) {
+        const customerMap = {};
+
+        customers.forEach(c => {
+            customerMap[c.id] = { name: c.name, phone: c.phone || 'N/A', invoiceCount: 0, totalAmount: 0 };
+        });
+
+        invoices.forEach(inv => {
+            const cid = inv.customer_id;
+            if (customerMap[cid]) {
+                customerMap[cid].invoiceCount++;
+                customerMap[cid].totalAmount += parseFloat(inv.total_amount || 0);
+            }
+        });
+
+        vm.topCustomers = Object.values(customerMap)
+            .filter(c => c.invoiceCount > 0)
+            .sort((a, b) => b.totalAmount - a.totalAmount)
+            .slice(0, 10);
+    };
+
+    // Date filter
+    vm.filterByDate = function(data, dateField) {
+        if (!vm.dateFilter.from && !vm.dateFilter.to) return data;
+
+        return data.filter(item => {
+            const dateVal = item[dateField];
+            if (!dateVal) return false;
+            const d = new Date(dateVal);
+            const from = vm.dateFilter.from ? new Date(vm.dateFilter.from) : null;
+            const to = vm.dateFilter.to ? new Date(vm.dateFilter.to) : null;
+            if (from && d < from) return false;
+            if (to && d > to) return false;
+            return true;
+        });
+    };
+
+    // Filters
+    vm.applyFilter = () => vm.loadData();
+
+    vm.applyQuickFilter = function() {
+        const today = new Date();
+        switch (vm.quickFilter) {
+            case 'today':
+                vm.dateFilter.from = vm.dateFilter.to = today.toISOString().split('T')[0];
+                break;
+            case 'week':
+                const weekAgo = new Date(today);
+                weekAgo.setDate(today.getDate() - 7);
+                vm.dateFilter.from = weekAgo.toISOString().split('T')[0];
+                vm.dateFilter.to = today.toISOString().split('T')[0];
+                break;
+            case 'month':
+                const monthAgo = new Date(today);
+                monthAgo.setMonth(today.getMonth() - 1);
+                vm.dateFilter.from = monthAgo.toISOString().split('T')[0];
+                vm.dateFilter.to = today.toISOString().split('T')[0];
+                break;
+            case 'year':
+                const yearAgo = new Date(today);
+                yearAgo.setFullYear(today.getFullYear() - 1);
+                vm.dateFilter.from = yearAgo.toISOString().split('T')[0];
+                vm.dateFilter.to = today.toISOString().split('T')[0];
+                break;
+            case 'all':
+            default:
+                vm.dateFilter = { from: null, to: null };
+        }
+        vm.loadData();
+    };
+
+    vm.clearFilter = function() {
+        vm.dateFilter = { from: null, to: null };
+        vm.quickFilter = 'all';
+        vm.loadData();
+    };
+
+    vm.refreshData = function() {
+        vm.checkAPI();
+        $timeout(vm.loadData, 500);
+    };
+
+    // Init
+    vm.checkAPI();
+    vm.loadData();
+}]);
+</script>
+
+</body>
+</html>

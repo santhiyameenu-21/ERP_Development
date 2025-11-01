@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="mechanicalCoreERP">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanical Core ERP - Items Management</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        [ng\:cloak], [ng-cloak], .ng-cloak {
+            display: none !important;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 16.666667%;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd;
+            padding: 12px 20px;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            margin-left: 16.666667%;
+        }
+        .table-actions {
+            white-space: nowrap;
+        }
+        .kit-section {
+            background-color: #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 50px;
+        }
+        .api-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .low-stock {
+            background-color: #fff3cd !important;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+            margin-bottom: 20px;
+        }
+        .stats-card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .page-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .hsn-success {
+            background-color: #d4edda !important;
+            border-color: #28a745 !important;
+        }
+        .hsn-warning {
+            background-color: #fff3cd !important;
+            border-color: #ffc107 !important;
+        }
+    </style>
+</head>
+<body ng-controller="ItemsController as itemsCtrl" ng-cloak>
+    <!-- API Status Indicator -->
+    <div class="api-status">
+        <span class="badge badge-lg px-3 py-2" ng-class="itemsCtrl.apiOnline ? 'bg-success' : 'bg-danger'">
+            <i class="fas" ng-class="itemsCtrl.apiOnline ? 'fa-check-circle' : 'fa-times-circle'"></i>
+            <span ng-if="itemsCtrl.apiOnline"> API Online</span>
+            <span ng-if="!itemsCtrl.apiOnline"> API Offline</span>
+        </span>
+    </div>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="p-4">
+                    <h4><i class="fas fa-industry me-2"></i>Mechanical Core</h4>
+                    <p class="text-muted mb-0">ERP System</p>
+                </div>
+                <hr class="bg-light">
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="items.html">
+                        <i class="fas fa-box me-2"></i>Items Management
+                    </a>
+                    <a class="nav-link" href="customer.html">
+                        <i class="fas fa-users me-2"></i>Customers
+                    </a>
+                    <a class="nav-link" href="invoice.html">
+                        <i class="fas fa-file-invoice me-2"></i>Invoices
+                    </a>
+                    <a class="nav-link" href="quotation.html">
+                        <i class="fas fa-file-invoice me-2"></i>Quotation
+                    </a>
+                    <a class="nav-link" href="reports.html">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="settings.html">
+                        <i class="fas fa-cog me-2"></i>Settings
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="p-4">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="mb-1"><i class="fas fa-boxes me-2"></i>Items Management</h2>
+                                <p class="text-muted mb-0">Manage your inventory items and kits</p>
+                            </div>
+                            <button class="btn btn-primary btn-lg" ng-click="itemsCtrl.showAddModal()" ng-disabled="!itemsCtrl.apiOnline">
+                                <i class="fas fa-plus me-2"></i>Add New Item
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- API Offline Warning -->
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert" ng-if="!itemsCtrl.apiOnline">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> Cannot connect to backend server. Please make sure the backend is running on http://localhost:5000
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row mb-4" ng-if="!itemsCtrl.loading && itemsCtrl.apiOnline">
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-white bg-primary stats-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-1">{{ itemsCtrl.items.length }}</h3>
+                                            <p class="mb-0">Total Items</p>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-box fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-white bg-success stats-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-1">{{ itemsCtrl.getActiveItemsCount() }}</h3>
+                                            <p class="mb-0">Active Items</p>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-white bg-info stats-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-1">{{ itemsCtrl.getKitItemsCount() }}</h3>
+                                            <p class="mb-0">Kit Items</p>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-cubes fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-white bg-warning stats-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-1">{{ itemsCtrl.getLowStockItemsCount() }}</h3>
+                                            <p class="mb-0">Low Stock</p>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div class="loading-spinner" ng-if="itemsCtrl.loading && itemsCtrl.apiOnline">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Loading items...</p>
+                    </div>
+
+                    <!-- Items Table Card -->
+                    <div class="card" ng-if="!itemsCtrl.loading && itemsCtrl.apiOnline">
+                        <div class="card-header bg-white py-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>All Items</h5>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" placeholder="Search items by code, name..." ng-model="itemsCtrl.searchText">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Name</th>
+                                            <th>Description</th>
+                                            <th>Unit Price</th>
+                                            <th>Stock</th>
+                                            <th>Min Stock</th>
+                                            <th>HSN Code</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr ng-repeat="item in itemsCtrl.items | filter:itemsCtrl.searchText" 
+                                            ng-class="{'low-stock': item.stock <= item.min_stock}">
+                                            <td><strong>{{ item.code }}</strong></td>
+                                            <td>{{ item.name }}</td>
+                                            <td>
+                                                <span ng-if="item.description" class="text-truncate d-inline-block" style="max-width: 200px;">
+                                                    {{ item.description }}
+                                                </span>
+                                                <span ng-if="!item.description" class="text-muted fst-italic">No description</span>
+                                            </td>
+                                            <td><strong>₹{{ item.unit_price | number:2 }}</strong></td>
+                                            <td>
+                                                <span class="badge" 
+                                                      ng-class="{'bg-warning text-dark': item.stock <= item.min_stock, 'bg-success': item.stock > item.min_stock}">
+                                                    {{ item.stock }}
+                                                    <i ng-if="item.stock <= item.min_stock" class="fas fa-exclamation-triangle ms-1"></i>
+                                                </span>
+                                            </td>
+                                            <td>{{ item.min_stock }}</td>
+                                            <td><code>{{ item.hsn_code }}</code></td>
+                                            <td>
+                                                <span class="badge" ng-class="item.is_kit ? 'bg-info' : 'bg-secondary'">
+                                                    <i class="fas" ng-class="item.is_kit ? 'fa-cubes' : 'fa-box'"></i>
+                                                    {{ item.is_kit ? 'Kit' : 'Item' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge" ng-class="item.status === 'Active' ? 'bg-success' : 'bg-danger'">
+                                                    {{ item.status }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-primary" 
+                                                            ng-click="itemsCtrl.editItem(item)"
+                                                            title="Edit Item">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                            ng-click="itemsCtrl.deleteItem(item.id)"
+                                                            title="Delete Item">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr ng-if="(itemsCtrl.items | filter:itemsCtrl.searchText).length === 0 && !itemsCtrl.loading">
+                                            <td colspan="10" class="text-center py-5">
+                                                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                                <h5 class="text-muted">No items found</h5>
+                                                <p class="text-muted" ng-if="!itemsCtrl.searchText">Click "Add New Item" to create your first item.</p>
+                                                <p class="text-muted" ng-if="itemsCtrl.searchText">Try adjusting your search criteria.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white text-muted" ng-if="itemsCtrl.items.length > 0">
+                            <small>
+                                <i class="fas fa-info-circle me-1"></i>
+                                Showing {{ (itemsCtrl.items | filter:itemsCtrl.searchText).length }} of {{ itemsCtrl.items.length }} items
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Item Modal -->
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-box me-2"></i>{{ itemsCtrl.modalTitle }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form name="itemForm" novalidate>
+                        <!-- Basic Information -->
+                        <h6 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Item Code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" ng-model="itemsCtrl.currentItem.code" required placeholder="e.g., ITM001">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Item Name <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       ng-model="itemsCtrl.currentItem.name" 
+                                       required 
+                                       placeholder="e.g., Bearing, Nut, Screw"
+                                       ng-change="itemsCtrl.onItemNameChange()"
+                                       ng-blur="itemsCtrl.onItemNameChange()"
+                                       ng-keyup="itemsCtrl.onItemNameChange()">
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Type item name - HSN code will auto-fill with similar matches
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <textarea class="form-control" ng-model="itemsCtrl.currentItem.description" rows="2" placeholder="Enter item description..."></textarea>
+                        </div>
+
+                        <hr>
+
+                        <!-- Pricing & Stock -->
+                        <h6 class="text-primary mb-3"><i class="fas fa-rupee-sign me-2"></i>Pricing & Stock</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Unit Price (₹) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control" 
+                                       ng-model="itemsCtrl.currentItem.unit_price" required min="0" placeholder="0.00">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Current Stock <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" 
+                                       ng-model="itemsCtrl.currentItem.stock" required min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Min Stock Level <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" 
+                                       ng-model="itemsCtrl.currentItem.min_stock" required min="0" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- HSN Code Field -->
+                         <!-- Replace the HSN Code section in your modal with this -->
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label fw-bold">HSN Code <span class="text-danger">*</span></label>
+        <input type="text" 
+               class="form-control" 
+               id="hsnCodeField"
+               ng-model="itemsCtrl.currentItem.hsn_code" 
+               required 
+               placeholder="Type HSN code or wait for auto-fill"
+               ng-change="itemsCtrl.validateHsnCode()">
+        <div id="hsnMessage" class="form-text">
+            <i class="fas fa-magic me-1 text-info"></i>
+            Will auto-fill from item name, or type manually
+        </div>
+        <!-- Add HSN validation message -->
+        <div id="hsnError" class="text-danger small mt-1" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i> HSN code is required
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <label class="form-label fw-bold">Status</label>
+        <select class="form-select" ng-model="itemsCtrl.currentItem.status">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+        </select>
+    </div>
+</div>
+
+
+                        <hr>
+
+                        <!-- Kit Configuration -->
+                        <div class="form-check form-switch mb-3">
+                            <input type="checkbox" class="form-check-input" id="kitToggle"
+                                   ng-model="itemsCtrl.currentItem.is_kit"
+                                   ng-change="itemsCtrl.onKitToggle()">
+                            <label class="form-check-label fw-bold" for="kitToggle">
+                                <i class="fas fa-cubes me-2"></i>This is a Kit (Bundle of items)
+                            </label>
+                        </div>
+
+                        <!-- Kit Section -->
+                        <div class="kit-section" ng-if="itemsCtrl.currentItem.is_kit">
+                            <h6 class="mb-3"><i class="fas fa-cubes me-2"></i>Kit Configuration</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Kit Name</label>
+                                <input type="text" class="form-control" 
+                                       ng-model="itemsCtrl.currentItem.kit_name"
+                                       placeholder="e.g., Standard Bearing Kit">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Add Items to Kit</label>
+                                <div class="row g-2">
+                                    <div class="col-md-7">
+                                        <select class="form-select" ng-model="itemsCtrl.selectedComponentItem">
+                                            <option value="">-- Select an item --</option>
+                                            <option ng-repeat="item in itemsCtrl.nonKitItems" value="{{ item.id }}">
+                                                {{ item.code }} - {{ item.name }} (₹{{ item.unit_price }})
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" class="form-control" placeholder="Quantity" 
+                                               ng-model="itemsCtrl.componentQuantity" min="1">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-success w-100" 
+                                                ng-click="itemsCtrl.addKitComponent()">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div ng-if="itemsCtrl.currentItem.kit_items.length > 0">
+                                <label class="form-label fw-bold">Kit Components</label>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Code</th>
+                                                <th>Name</th>
+                                                <th>Qty</th>
+                                                <th>Unit Price</th>
+                                                <th>Total</th>
+                                                <th width="50">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr ng-repeat="component in itemsCtrl.currentItem.kit_items">
+                                                <td><code>{{ component.item_code }}</code></td>
+                                                <td>{{ component.item_name }}</td>
+                                                <td><strong>{{ component.quantity }}</strong></td>
+                                                <td>₹{{ component.unit_price | number:2 }}</td>
+                                                <td><strong>₹{{ (component.quantity * component.unit_price) | number:2 }}</strong></td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-danger" 
+                                                            ng-click="itemsCtrl.removeKitComponent($index)"
+                                                            title="Remove">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr class="table-info">
+                                                <td colspan="4" class="text-end"><strong>Total Kit Value:</strong></td>
+                                                <td colspan="2"><strong>₹{{ itemsCtrl.calculateKitTotal() | number:2 }}</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div ng-if="itemsCtrl.currentItem.kit_items.length === 0" class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>No items added to this kit yet. Use the form above to add components.
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" 
+                            ng-click="itemsCtrl.saveItem()"
+                            ng-disabled="!itemForm.$valid || itemsCtrl.saving">
+                        <span ng-if="itemsCtrl.saving">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Saving...
+                        </span>
+                        <span ng-if="!itemsCtrl.saving">
+                            <i class="fas fa-save me-2"></i>Save Item
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Scripts in correct order -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- App Scripts - Make sure these files exist in the same directory -->
+    <script src="app.js"></script>
+    <script src="items.service.js"></script>
+    <script src="items.controller.js"></script>
+    
+    <!-- Debug Script -->
+    <script>
+        // Debug: Check if AngularJS loaded
+        if (typeof angular === 'undefined') {
+            console.error('AngularJS failed to load!');
+            document.body.innerHTML = '<div style="padding: 50px; text-align: center;"><h2>Error: AngularJS not loaded</h2><p>Check your internet connection or CDN availability.</p></div>';
+        } else {
+            console.log('✅ AngularJS loaded successfully');
+        }
+
+        // Debug: Check if all required scripts are loaded
+        window.addEventListener('load', function() {
+            console.log('✅ Page loaded completely');
+            
+            // Check if our Angular module is defined
+            try {
+                var app = angular.module('mechanicalCoreERP');
+                console.log('✅ mechanicalCoreERP module found');
+                
+                // Check if controller exists
+                var injector = angular.injector(['ng', 'mechanicalCoreERP']);
+                var service = injector.get('ItemsService');
+                console.log('✅ ItemsService found');
+                
+            } catch (e) {
+                console.error('❌ Angular module or service not found:', e);
+            }
+        });
+    </script>
+</body>
+</html>
